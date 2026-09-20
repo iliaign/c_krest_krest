@@ -1,44 +1,46 @@
+
 #pragma once
 #include "Cache.hpp"
 #include <unordered_map>
 #include <list>
 #include <optional>
 
-class ARCcache: public Cache<int, int>{
+template <typename Key, typename Value>
+class ARCcache: public Cache<Key, Value>{
 
     //4 списка работают по приципу LRU
     //4 очереди
-    std::list<int>  T1;
-    std::list<int>  T2;
+    std::list<Key>  T1;
+    std::list<Key>  T2;
     //госты не хранят значения, только ключ
     //они нужны для баланисровки
-    std::list<int>  B1;
-    std::list<int>  B2;
+    std::list<Key>  B1;
+    std::list<Key>  B2;
 
     std::size_t p;
 
 
 
     struct NodeData{   
-        std::optional<int> data;
+        std::optional<Value> data;
     };
 
     struct Node{   
 
-        Node(char state, std::list<int>::iterator pos): state(state), pos(pos) {}
+        Node(char state, typename std::list<Key>::iterator pos): state(state), pos(pos) {}
         //"a" - T1; "b"  T2 
         //"c" B1; "d"  B2;
         char state;
-        std::list<int>::iterator pos;
+        typename std::list<Key>::iterator pos;
         NodeData obj;
 
     };
 
-    std::unordered_map<int, Node> cashe_elements;
+    std::unordered_map<Key, Node> cashe_elements;
 
     //чистим Т1 или Т2
     void replace(){
-        std::unordered_map<int, Node>::iterator old_el;
+        typename std::unordered_map<Key, Node>::iterator old_el;
         if (p<T1.size()){
             //T1 больше целевого размера p
             //вытесняем с т1 и отправляем в b1
@@ -69,14 +71,14 @@ class ARCcache: public Cache<int, int>{
     }    
 
     void ch_gost_size(){
-        if ( (B1.size()+B2.size()) >= 2*getCapacity()){
+        if ( (B1.size()+B2.size()) >= 2*this->getCapacity()){
             if (B1.size()>B2.size()){
-                int key = B1.front();
+                Key key = B1.front();
                 B1.pop_front();
                 cashe_elements.erase(key);
             }
             else{
-                int key = B2.front();
+                Key key = B2.front();
                 B2.pop_front();
                 cashe_elements.erase(key);
             }
@@ -84,7 +86,7 @@ class ARCcache: public Cache<int, int>{
         
     }
 
-    void add_to_t2(std::unordered_map<int, Node>::iterator el, int data){
+    void add_to_t2(typename std::unordered_map<Key, Node>::iterator el, Value data){
             T2.push_back(el->first);
             el->second.pos = (--T2.end());
             el->second.obj.data = data;
@@ -92,10 +94,10 @@ class ARCcache: public Cache<int, int>{
     }
 
 public:
-    ARCcache(): p(0) {}
+    explicit ARCcache(std::size_t capacity): Cache<Key, Value>(capacity), p(0) {}
 
-    bool get(int key, int& value){
-        std::unordered_map<int, Node>::iterator el = cashe_elements.find(key);
+    bool get(const Key& key, Value& value){
+        typename std::unordered_map<Key, Node>::iterator el = cashe_elements.find(key);
         if (el == cashe_elements.end()){
             return false;
         }
@@ -122,26 +124,26 @@ public:
     }
 
 
-    void put(int key, int data){
-        if (getCapacity() == 0){
+    void put(const Key& key, Value data){
+        if (this->getCapacity() == 0){
             return;
         }
-        std::unordered_map<int, Node>::iterator el = cashe_elements.find(key);
+        typename std::unordered_map<Key, Node>::iterator el = cashe_elements.find(key);
         //проверяем, есть ли элемент у нас
 
         
         if (el == cashe_elements.end()){
             //занчит его вообще нигде нет
             //в том числе в гостах!
-            if ( (T1.size()+T2.size()) >=getCapacity()){
+            if ( (T1.size()+T2.size()) >=this->getCapacity()){
                 //вставка с осчисткой
                 replace();
                 ch_gost_size();
             }
             //простая вставка и создание элемента
             T1.push_back(key);
-            cashe_elements[key] = Node('A', (-- T1.end()) );
-            cashe_elements[key].obj.data = data;
+            cashe_elements.emplace(key, Node('A', (-- T1.end()) ));
+            cashe_elements.find(key)->second.obj.data = data;
 
     
         }
@@ -163,11 +165,11 @@ public:
         }
         else if (el->second.state == 'C'){
             //кэш мис, но! удалили из т1, двигаем п, увеличиваем его
-            if (p<getCapacity()){
+            if (p<this->getCapacity()){
             ++p;
             }
             //добавляем в т2(если конечно влазим)
-            if( (T1.size()+T2.size()) >= getCapacity()){
+            if( (T1.size()+T2.size()) >= this->getCapacity()){
                 replace();
                 ch_gost_size();
 
@@ -182,7 +184,7 @@ public:
             --p;
             }
             //добавляем в т2(если конечно влазим)
-            if( (T1.size()+T2.size()) >= getCapacity() ){
+            if( (T1.size()+T2.size()) >= this->getCapacity() ){
                 replace();
                 ch_gost_size();
             }
@@ -191,6 +193,13 @@ public:
         }
 
     }
-    void clean();
+    void clear(){
+        T1.clear();
+        T2.clear();
+        B1.clear();
+        B2.clear();
+        cashe_elements.clear();
+        p = 0;
+    };
 
 };
