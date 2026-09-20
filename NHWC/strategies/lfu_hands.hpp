@@ -4,7 +4,7 @@
 #include <list>
 
 template <typename K, typename V>
-class LFUdata : public Cache<K, V> {
+class LFU_cache : public Cache<K, V> {
     int minfreq;
 
     struct Node {
@@ -43,7 +43,7 @@ class LFUdata : public Cache<K, V> {
     }
 
 public:
-    LFUdata(size_t capacity): Cache<K, V>(capacity), minfreq(0) {}
+    LFU_cache(size_t capacity): Cache<K, V>(capacity), minfreq(0) {}
 
 
     bool get(const K& key, V& value) override {
