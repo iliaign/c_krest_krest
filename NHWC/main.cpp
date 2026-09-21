@@ -2,6 +2,7 @@
 #include "strategies/random_cache.hpp"
 #include "strategies/LFU.hpp"
 #include "strategies/2Q.hpp"
+#include "strategies/LIRC.hpp"
 
 #include <iostream>
 #include <vector>
@@ -133,6 +134,7 @@ struct PatternResult {
     Stats random;
     Stats lfu;
     Stats twoQ;
+    Stats lirc;
 };
 
 
@@ -147,12 +149,14 @@ PatternResult runPattern(const std::vector<int>& requests)
     RandomCache<int, int> randomCache(capacity);
     LFUCache<int, int> lfuCache(capacity);
     TwoQCache<int, int> twoQCache(capacity);
+    LircCache<int, int> lircCache(capacity);
 
     PatternResult result;
 
     result.random = testCache(randomCache, requests);
     result.lfu = testCache(lfuCache, requests);
     result.twoQ = testCache(twoQCache, requests);
+    result.lirc = testCache(lircCache, requests);
 
     return result;
 }
@@ -171,6 +175,7 @@ void printRow(
               << std::setw(15) << result.random.hitRate()
               << std::setw(15) << result.lfu.hitRate()
               << std::setw(15) << result.twoQ.hitRate()
+              << std::setw(15) << result.lirc.hitRate()
               << '\n';
 }
 
@@ -206,6 +211,7 @@ int main()
               << std::setw(15) << "Random"
               << std::setw(15) << "LFU"
               << std::setw(15) << "2Q"
+              << std::setw(15) << "LIRC"
               << '\n';
 
     std::cout << std::string(60, '-') << '\n';
