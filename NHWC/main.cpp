@@ -2,7 +2,7 @@
 #include "strategies/random_cache.hpp"
 #include "strategies/LFU.hpp"
 #include "strategies/2Q.hpp"
-#include "strategies/LIRC.hpp"
+#include "strategies/LIRC_hands.hpp"
 
 #include <iostream>
 #include <vector>

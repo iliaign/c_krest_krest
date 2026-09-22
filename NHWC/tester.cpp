@@ -1,7 +1,7 @@
 #include "strategies/Cache.hpp"
 #include "strategies/lfu_hands.hpp"
 #include "strategies/arc_hands.hpp"
-#include "strategies/LIRC.hpp"
+#include "strategies/LIRC_hands.hpp"
 
 #include <iostream>
 #include <chrono>
