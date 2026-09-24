@@ -123,7 +123,6 @@ public:
         return true;
     }
 
-
     void put(const Key& key, Value data){
         if (this->getCapacity() == 0){
             return;
@@ -131,7 +130,6 @@ public:
         typename std::unordered_map<Key, Node>::iterator el = cashe_elements.find(key);
         //проверяем, есть ли элемент у нас
 
-        
         if (el == cashe_elements.end()){
             //занчит его вообще нигде нет
             //в том числе в гостах!
@@ -144,11 +142,7 @@ public:
             T1.push_back(key);
             cashe_elements.emplace(key, Node('A', (-- T1.end()) ));
             cashe_elements.find(key)->second.obj.data = data;
-
-    
         }
-
-        
         else if (el->second.state == 'A'){
             //вставляют элемент с ключем из т1
             //дату перезапишем и перекинем элемент в т2
@@ -156,7 +150,6 @@ public:
             add_to_t2(el, data);
             
         }
-
         else if (el->second.state == 'B'){
             //вставляют элемнет из т2
             //в т2 должны подвигать его вперед
@@ -191,7 +184,6 @@ public:
             B2.erase(el->second.pos);
             add_to_t2(el, data);
         }
-
     }
     void clear(){
         T1.clear();
@@ -201,5 +193,4 @@ public:
         cashe_elements.clear();
         p = 0;
     };
-
 };
