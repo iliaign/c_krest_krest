@@ -2,7 +2,7 @@
 #include<cstddef>
 #include<list>
 #include<unordered_map>
-#include<algoritm>
+#include<algorithm>
 #include"Cache.hpp"
 template <typename Key, typename Value>
 class TwoQ : public Cache<Key, Value>
@@ -105,28 +105,24 @@ public:
         }
         addToA1In(key, std::move(value));
     }
-    bool get(const Key& key, Value& value)override{
-        auto it = data.find(key);
-        if (it == data.end()){
-            auto ghost = std::find(a1out.begin(), a1out.end(), key);
-            if (ghost != a1out.end()){
-                a1out.erase(ghost);
-            }
-            return false;
-        }
-        value = it->second.value;
-        if (it->second.queue == Queue::A1IN){
-            Key oldKey = it->first;
-            Value oldValue = it->second.value;
-            a1in.erase(it->second.pos);
-            data.erase(it);
-            addToAm(oldKey, std::move(oldValue));
-        }
-        else{
-            touchAm(it);
-        }
-        return true;
+    bool get(const Key& key, Value& value) override{
+    auto it = data.find(key);
+    if (it == data.end()){
+        return false;
     }
+    value = it->second.value;
+    if (it->second.queue == Queue::A1IN){
+        Key oldKey = it->first;
+        Value oldValue = it->second.value;
+        a1in.erase(it->second.pos);
+        data.erase(it);
+        addToAm(oldKey, std::move(oldValue));
+    }
+    else {
+        touchAm(it);
+    }
+    return true;
+}
     void clear()override{
         data.clear();
         a1in.clear();

@@ -1,0 +1,17 @@
+pattern,cache,hits,misses,hit_rate
+Cyclic,LFU,9990,10,99.9
+Cyclic,2Q,9990,10,99.9
+Cyclic,ARC,9990,10,99.9
+Cyclic,LIRS,9990,10,99.9
+Sequential,LFU,0,10000,0
+Sequential,2Q,0,10000,0
+Sequential,ARC,0,10000,0
+Sequential,LIRS,0,10000,0
+Hot,LFU,9980,20,99.8
+Hot,2Q,9978,22,99.78
+Hot,ARC,9980,20,99.8
+Hot,LIRS,9980,20,99.8
+Random,LFU,4878,5122,48.78
+Random,2Q,5040,4960,50.4
+Random,ARC,5091,4909,50.91
+Random,LIRS,6004,3996,60.04

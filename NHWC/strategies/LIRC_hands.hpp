@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <iterator>
 template <typename Key, typename Value>
-class LircCache : public Cache<key, Value> {
+class LircCache : public Cache<Key, Value> {
 private:
     enum class Status {
         LIR,
@@ -28,46 +28,50 @@ private:
     std::list<Key> S;
     std::list<Key> Q;
     std::unordered_map<Key, Node> table;
+    //чистим стэк S 
     void prune_stack() {
         while (!S.empty()) {
             Key bottom_key = S.back();
             auto it = table.find(bottom_key);
-
-            if (it != table.end() && it->second.status == Status::LIR) {
+            if (it != table.end() && it->second.status == Status::LIR){
                 break;
             }
-
-            if (it != table.end()) {
+            if (it != table.end()){
                 it->second.in_stack = false;
             }
             S.pop_back();
         }
     }
-    void remove_from_queue(Node& node) {
+    //удалить из Q
+    void remove_from_queue(Node& node){
         if (node.in_queue) {
             Q.erase(node.queue_iter);
             node.in_queue = false;
         }
     }
-    void remove_from_stack(Node& node) {
+    //удалить из S
+    void remove_from_stack(Node& node){
         if (node.in_stack) {
             S.erase(node.stack_iter);
             node.in_stack = false;
         }
     }
-    void push_stack(Key key, Node& node) {
+    // Ставим наверх стека
+    void push_stack(Key key, Node& node){
         remove_from_stack(node);
         S.push_front(key);
         node.stack_iter = S.begin();
         node.in_stack = true;
     }
-    void push_queue(Key, key, Node& node) {
+    
+    void push_queue(Key key, Node& node){
         remove_from_queue(node);
         Q.push_back(key);
         node.queue_iter = std::prev(Q.end());
         node.in_queue = true;
     }
-    void evict_hir() {
+    // вытесняет старый HIR из кэша
+    void evict_hir(){
         if (Q.empty()) return;
 
         Key evict_key = Q.front();
@@ -77,43 +81,43 @@ private:
         if (it != table.end()) {
             it->second.in_queue = false;
 
-            if (it->second.in_stack) {
+            if (it->second.in_stack){
                 it->second.status = Status::HIR_NON_RESIDENT;
                 it->second.value = Value();
-            }  else {
+            }  
+            else{
                 table.erase(it);
             }
             --current_hir_resident_count;
         }
     }
 public:
-    explicit LircCache(std::size_t capacity, float hir_ratio = 0.1f): Cache<Key, Value>(capacity) {
-        if (capacity == 0) capacity = 1;
-        max_hir_capacity = static_cast<std::size_t>(capacity * hir_ratio);
-        if (max_hir_capacity == 0) max_hir_capacity = 1;
-
-        max_lir_capacity = capacity - max_hir_capacity;
-        if (max_lir_capacity == 0) {
-            max_lir_capacity = 1;
-            max_hir_capacity = capacity > 1 ? capacity - 1 : 1;
-        }
+    explicit LircCache(std::size_t capacity, float hir_ratio = 0.1f)
+    : Cache<Key, Value>(capacity) {
+    max_hir_capacity = static_cast<std::size_t>(capacity * hir_ratio);
+    if (max_hir_capacity == 0) {
+        max_hir_capacity = 1;
     }
-    bool get(const Key& key, Value& value) override {
+    max_lir_capacity = capacity - max_hir_capacity;
+}
+    bool get(const Key& key, Value& value) override{
         auto it = table.find(key);
-        if (it == table.end() || it->second.status == Status::HIR_NON_RESIDENT) {
+        if (it == table.end() || it->second.status == Status::HIR_NON_RESIDENT){
             return false;
         }
+        // для упрощения
         Node& node = it->second;
         value = node.value;
-
         bool was_in_stack = node.in_stack;
-        push_stack(key, node);
 
-        if (node.status == Status::LIR) {
-            if (S.back() == key) {
+        push_stack(key, node);
+        if (node.status == Status::LIR){
+            //если элемент уже в конце
+            if (S.back() == key){
                 prune_stack();
             }
-        } else if (node.status == Status::HIR_RESIDENT) {
+        } 
+        else if (node.status == Status::HIR_RESIDENT){
             if (was_in_stack) {
                 node.status = Status::LIR;
                 remove_from_queue(node);
@@ -129,7 +133,8 @@ public:
                 
                 push_queue(bottom_lir_key, bottom_node);
                 prune_stack();
-            } else {
+            } 
+            else{
                 push_queue(key, node);
             }
         }
@@ -141,16 +146,16 @@ public:
         if (it != table.end()) {
             Node& node = it->second;
             node.value = value;
-
             if (node.status == Status::LIR) {
                 bool is_bottom = (S.back() == key);
                 push_stack(key, node);
-                if (is_bottom) prune_stack();
+                if (is_bottom){
+                    prune_stack();
+                }
             } 
             else if (node.status == Status::HIR_RESIDENT) {
                 bool was_in_stack = node.in_stack;
                 push_stack(key, node);
-
                 if (was_in_stack) {
                     node.status = Status::LIR;
                     remove_from_queue(node);
@@ -166,7 +171,8 @@ public:
 
                     push_queue(bottom_lir_key, bottom_node);
                     prune_stack();
-                } else {
+                } 
+                else{
                     push_queue(key, node);
                 }
             } 
@@ -202,7 +208,6 @@ public:
 
             Node new_node{key, value, Status::HIR_RESIDENT};
             table[key] = new_node;
-
             push_stack(key, table[key]);
             push_queue(key, table[key]);
             ++current_hir_resident_count;
@@ -215,5 +220,5 @@ public:
         current_lir_count = 0;
         current_hir_resident_count = 0;
     }
-    ~LircCache() override = default
+    ~LircCache() override = default;
 };
