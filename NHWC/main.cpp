@@ -3,6 +3,7 @@
 #include "strategies/2q_hands.hpp"
 #include "strategies/arc_hands.hpp"
 #include "strategies/LIRC_hands.hpp"
+#include "strategies/BeladyCache.hpp"
 
 #include <iostream>
 #include <vector>
@@ -130,11 +131,16 @@ void runTest(
     ARCcache<int, int> arc(capacity);
     LircCache<int, int> lirc(capacity);
 
+    BeladyCache<int, int> belady(capacity); 
+    belady.setRequests(requests); //предрасчет
+
     // Все алгоритмы получают одинаковые запросы
     Stats lfuStats = testCache(lfu, requests);
     Stats twoQStats = testCache(twoQ, requests);
     Stats arcStats = testCache(arc, requests);
     Stats lircStats = testCache(lirc, requests);
+
+    Stats beladyStats = testCache(belady, requests);
 
     // Выводим результаты в консоль
     std::cout << "\n" << patternName << "\n";
@@ -143,11 +149,15 @@ void runTest(
     std::cout << "ARC:  " << arcStats.hitRate() << "%\n";
     std::cout << "LIRS: " << lircStats.hitRate() << "%\n";
 
+    std::cout << "Belady: " << beladyStats.hitRate() << "%\n";
+
     // Сохраняем результаты в CSV
     writeResult(file, patternName, "LFU", lfuStats);
     writeResult(file, patternName, "2Q", twoQStats);
     writeResult(file, patternName, "ARC", arcStats);
     writeResult(file, patternName, "LIRS", lircStats);
+
+    writeResult(file, patternName, "Belady", beladyStats);
 }
 
 // Измеряет общее время обработки запросов
@@ -189,12 +199,16 @@ void runTimeTests(
     ARCcache<int, int> arc(capacity);
     LircCache<int, int> lirc(capacity);
 
+    BeladyCache<int, int> belady(capacity);
+    belady.setRequests(requests); //предрасчет
+
     // Записываем время работы каждого алгоритма в CSV
     file << requests.size() << ","
          << testTime(lfu, requests) << ","
          << testTime(twoQ, requests) << ","
          << testTime(arc, requests) << ","
-         << testTime(lirc, requests) << "\n";
+         << testTime(lirc, requests) << ","
+         << testTime(belady, requests) << "\n";
 }
 
 
@@ -243,7 +257,7 @@ int main()
 
     std::ofstream timeFile("time_results.csv");
 
-    timeFile << "requests,LFU,2Q,ARC,LIRS\n";
+    timeFile << "requests,LFU,2Q,ARC,LIRС, Belady\n";
 
     for (int n : {10, 100, 1000, 10000, 100000}) {
         runTimeTests(
