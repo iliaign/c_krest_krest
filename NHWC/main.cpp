@@ -22,6 +22,19 @@ struct Stats {
     }
 };
 
+// Отношение hit rate алгоритма к hit rate Белади.
+// Если у Белади 0%, то и у остальных 0%, поэтому отношение считаем равным 1.
+double ratioToBelady(const Stats& stats, const Stats& belady)
+{
+    double beladyRate = belady.hitRate();
+
+    if (beladyRate == 0.0) {
+        return 1.0;
+    }
+
+    return stats.hitRate() / beladyRate;
+}
+
 // Проверяет работу кэша на заданных запросах
 Stats testCache(
     Cache<int, int>& cache,
@@ -109,13 +122,15 @@ void writeResult(
     std::ofstream& file,
     const std::string& pattern,
     const std::string& cacheName,
-    const Stats& stats)
+    const Stats& stats,
+    const Stats& beladyStats)
 {
     file << pattern << ","
          << cacheName << ","
          << stats.hits << ","
          << stats.misses << ","
-         << stats.hitRate() << "\n";
+         << stats.hitRate() << ","
+         << ratioToBelady(stats, beladyStats) << "\n";
 }
 
 // Запускает один паттерн для всех алгоритмов кэширования
@@ -131,7 +146,7 @@ void runTest(
     ARCcache<int, int> arc(capacity);
     LircCache<int, int> lirc(capacity);
 
-    BeladyCache<int, int> belady(capacity); 
+    BeladyCache<int, int> belady(capacity);
     belady.setRequests(requests); //предрасчет
 
     // Все алгоритмы получают одинаковые запросы
@@ -144,20 +159,22 @@ void runTest(
 
     // Выводим результаты в консоль
     std::cout << "\n" << patternName << "\n";
-    std::cout << "LFU:  " << lfuStats.hitRate() << "%\n";
-    std::cout << "2Q:   " << twoQStats.hitRate() << "%\n";
-    std::cout << "ARC:  " << arcStats.hitRate() << "%\n";
-    std::cout << "LIRS: " << lircStats.hitRate() << "%\n";
-
-    std::cout << "Belady: " << beladyStats.hitRate() << "%\n";
+    std::cout << "LFU:    " << lfuStats.hitRate() << "%  (к Belady: "
+              << ratioToBelady(lfuStats, beladyStats) << ")\n";
+    std::cout << "2Q:     " << twoQStats.hitRate() << "%  (к Belady: "
+              << ratioToBelady(twoQStats, beladyStats) << ")\n";
+    std::cout << "ARC:    " << arcStats.hitRate() << "%  (к Belady: "
+              << ratioToBelady(arcStats, beladyStats) << ")\n";
+    std::cout << "LIRS:   " << lircStats.hitRate() << "%  (к Belady: "
+              << ratioToBelady(lircStats, beladyStats) << ")\n";
+    std::cout << "Belady: " << beladyStats.hitRate() << "%  (к Belady: 1)\n";
 
     // Сохраняем результаты в CSV
-    writeResult(file, patternName, "LFU", lfuStats);
-    writeResult(file, patternName, "2Q", twoQStats);
-    writeResult(file, patternName, "ARC", arcStats);
-    writeResult(file, patternName, "LIRS", lircStats);
-
-    writeResult(file, patternName, "Belady", beladyStats);
+    writeResult(file, patternName, "LFU",    lfuStats,    beladyStats);
+    writeResult(file, patternName, "2Q",     twoQStats,   beladyStats);
+    writeResult(file, patternName, "ARC",    arcStats,    beladyStats);
+    writeResult(file, patternName, "LIRS",   lircStats,   beladyStats);
+    writeResult(file, patternName, "Belady", beladyStats, beladyStats);
 }
 
 // Измеряет общее время обработки запросов
@@ -221,7 +238,7 @@ int main()
     // Открываем файл для записи результатов
     std::ofstream file("results.csv");
 
-    file << "pattern,cache,hits,misses,hit_rate\n";
+    file << "pattern,cache,hits,misses,hit_rate,belady_ratio\n";
 
     // Тестируем циклические запросы
     runTest(
@@ -257,7 +274,7 @@ int main()
 
     std::ofstream timeFile("time_results.csv");
 
-    timeFile << "requests,LFU,2Q,ARC,LIRС, Belady\n";
+    timeFile << "requests,LFU,2Q,ARC,LIRS,Belady\n";
 
     for (int n : {10, 100, 1000, 10000, 100000}) {
         runTimeTests(
