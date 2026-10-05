@@ -100,30 +100,35 @@ public:
     }
     max_lir_capacity = capacity - max_hir_capacity;
 }
-    bool get(const Key& key, Value& value) override{
+    bool get(const Key& key, Value& value) override {
         auto it = table.find(key);
-        if (it == table.end() || it->second.status == Status::HIR_NON_RESIDENT){
+        if (it == table.end() || it->second.status == Status::HIR_NON_RESIDENT) {
             return false;
         }
-        // для упрощения
+
         Node& node = it->second;
         value = node.value;
         bool was_in_stack = node.in_stack;
+        
+        // Проверяем, был ли ключ на дне ДО push_stack
+        bool is_bottom = (!S.empty() && S.back() == key);
 
         push_stack(key, node);
-        if (node.status == Status::LIR){
-            //если элемент уже в конце
-            if (S.back() == key){
+
+        if (node.status == Status::LIR) {
+            if (is_bottom) {
                 prune_stack();
             }
         } 
-        else if (node.status == Status::HIR_RESIDENT){
+        else if (node.status == Status::HIR_RESIDENT) {
             if (was_in_stack) {
                 node.status = Status::LIR;
                 remove_from_queue(node);
                 ++current_lir_count;
                 --current_hir_resident_count;
 
+                // Чистим стек, чтобы S.back() гарантированно упирался в LIR
+                prune_stack();
                 Key bottom_lir_key = S.back();
                 Node& bottom_node = table[bottom_lir_key];
                 
@@ -134,7 +139,7 @@ public:
                 push_queue(bottom_lir_key, bottom_node);
                 prune_stack();
             } 
-            else{
+            else {
                 push_queue(key, node);
             }
         }
@@ -146,22 +151,27 @@ public:
         if (it != table.end()) {
             Node& node = it->second;
             node.value = value;
+
             if (node.status == Status::LIR) {
-                bool is_bottom = (S.back() == key);
+                bool is_bottom = (!S.empty() && S.back() == key);
                 push_stack(key, node);
-                if (is_bottom){
+                if (is_bottom) {
                     prune_stack();
                 }
             } 
             else if (node.status == Status::HIR_RESIDENT) {
                 bool was_in_stack = node.in_stack;
                 push_stack(key, node);
+
                 if (was_in_stack) {
                     node.status = Status::LIR;
                     remove_from_queue(node);
                     ++current_lir_count;
                     --current_hir_resident_count;
 
+                    // 1. Очищаем стек, чтобы S.back() указывал на LIR
+                    prune_stack();
+                    
                     Key bottom_lir_key = S.back();
                     Node& bottom_node = table[bottom_lir_key];
                     
@@ -170,9 +180,11 @@ public:
                     ++current_hir_resident_count;
 
                     push_queue(bottom_lir_key, bottom_node);
+                    
+                    // 2. Очищаем стек повторно, так как новое дно стало HIR
                     prune_stack();
                 } 
-                else{
+                else {
                     push_queue(key, node);
                 }
             } 
@@ -184,6 +196,9 @@ public:
                 push_stack(key, node);
                 ++current_lir_count;
 
+                // 1. Очищаем стек, чтобы S.back() указывал на LIR
+                prune_stack();
+
                 Key bottom_lir_key = S.back();
                 Node& bottom_node = table[bottom_lir_key];
 
@@ -192,10 +207,14 @@ public:
                 ++current_hir_resident_count;
 
                 push_queue(bottom_lir_key, bottom_node);
+                
+                // 2. Очищаем стек повторно
                 prune_stack();
             }
             return;
         }
+
+        // Добавление нового ключа (которого нет в table)
         if (current_lir_count < max_lir_capacity && current_hir_resident_count == 0) {
             Node new_node{key, value, Status::LIR};
             table[key] = new_node;
