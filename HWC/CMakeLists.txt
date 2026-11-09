@@ -1,14 +1,26 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(ModuleTest LANGUAGES CXX)
+project(DynamicSet LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(DynamicSet
+    src/main.cpp
+)
 
-add_executable(module_test main.cpp)
-
-target_sources(module_test
+target_sources(DynamicSet
     PRIVATE
-        FILE_SET CXX_MODULES FILES
-        math.cppm
+        FILE_SET CXX_MODULES
+        BASE_DIRS sets tests
+        FILES
+            sets/dynamic_set.cppm
+            sets/set_implementation.cppm
+            sets/vector_implementation.cppm
+            tests/test.cppm
+)
+
+# C++20 required only for our target
+target_compile_features(DynamicSet PRIVATE cxx_std_20)
+
+set_target_properties(DynamicSet PROPERTIES
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
