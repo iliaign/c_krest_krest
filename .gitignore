@@ -6,6 +6,9 @@ out/
 # Настройки Visual Studio Code
 .vscode/
 
+#настройка отспуов
+.clang-format
+settings.json
 # Системные файлы
 .DS_Store
 Thumbs.db

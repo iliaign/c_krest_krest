@@ -1,6 +1,7 @@
 import tests;
 
-int main() {
+int main()
+{
     run_tests(100000);
     return 0;
 }

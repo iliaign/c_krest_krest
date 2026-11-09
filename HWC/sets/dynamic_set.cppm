@@ -6,8 +6,9 @@ module;
 export module dynamic_set;
 
 // Common interface of a dynamic set of integers.
-export class DynamicSet {
-public:
+export class DynamicSet
+{
+  public:
     virtual ~DynamicSet() = default;
 
     // Inserts x (the set does not change if x is already present).
