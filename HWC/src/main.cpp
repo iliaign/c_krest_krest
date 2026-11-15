@@ -1,132 +1,119 @@
-#include <gtest/gtest.h>
-
 #include <cstddef>
+#include <iostream>
+#include <memory>
 #include <optional>
-#include <random>
+#include <string>
 
 import dynamic_set;
-import set_implementation;    // class SetImplementation (adjust if named differently)
-import vector_implementation; // class VectorImplementation
-import avl_implementation;    // class AVLImplementation
+import set_implementation;
+import vector_implementation;
+import avl_implementation;
 
-// A fixture template: each test below is run once per implementation.
-template <typename T>
-class DynamicSetTest : public ::testing::Test
+// Creates the structure chosen by name; returns nullptr for unknown names.
+static std::unique_ptr<DynamicSet> make_set(const std::string& name)
 {
-  protected:
-    T set;
-};
-
-using Implementations = ::testing::Types<SetImplementation, VectorImplementation, AVLImplementation>;
-TYPED_TEST_SUITE(DynamicSetTest, Implementations);
-
-// Insertion, including duplicates.
-TYPED_TEST(DynamicSetTest, InsertIgnoresDuplicates)
-{
-    this->set.insert(5);
-    this->set.insert(5);
-    this->set.insert(5);
-    this->set.insert(3);
-
-    EXPECT_EQ(this->set.count_less(100), 2); // Only 3 and 5 are stored.
-    EXPECT_EQ(this->set.kth(1), 3);
-    EXPECT_EQ(this->set.kth(2), 5);
-    EXPECT_EQ(this->set.kth(3), std::nullopt);
+    if (name == "set")
+    {
+        return std::make_unique<SetImplementation>();
+    }
+    if (name == "vector")
+    {
+        return std::make_unique<VectorImplementation>();
+    }
+    if (name == "avl")
+    {
+        return std::make_unique<AVLImplementation>();
+    }
+    return nullptr;
 }
 
-TYPED_TEST(DynamicSetTest, CountInRange)
+int main(int argc, char* argv[])
 {
-    for (int x : {1, 3, 5, 7})
+    // Fast input/output: do not synchronize C++ streams with C stdio.
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    const std::string name = (argc > 1) ? argv[1] : "avl";
+    std::unique_ptr<DynamicSet> set = make_set(name);
+    if (!set)
     {
-        this->set.insert(x);
+        std::cerr << "Unknown structure '" << name << "'. Use: set | vector | avl\n";
+        return 1;
     }
 
-    EXPECT_EQ(this->set.count_in_range(1, 5), 2);      // 3, 5 (left bound excluded)
-    EXPECT_EQ(this->set.count_in_range(0, 1), 1);      // 1 (right bound included)
-    EXPECT_EQ(this->set.count_in_range(-100, 100), 4); // everything
-    EXPECT_EQ(this->set.count_in_range(7, 100), 0);    // nothing above 7
-    EXPECT_EQ(this->set.count_in_range(5, 5), 0);      // empty range
-    EXPECT_EQ(this->set.count_in_range(6, 2), 0);      // l > r
-}
+    bool first = true; // Used to separate outputs with spaces.
 
-TYPED_TEST(DynamicSetTest, Kth)
-{
-    for (int x : {10, -4, 7})
+    // Prints one result, separated from the previous one by a space.
+    auto print = [&first](const auto& value)
     {
-        this->set.insert(x);
+        if (!first)
+        {
+            std::cout << ' ';
+        }
+        std::cout << value;
+        first = false;
+    };
+
+    std::string command;
+    while (std::cin >> command)
+    {
+        if (command == "k") // k x: insert x
+        {
+            int x;
+            std::cin >> x;
+            if (std::cin)
+            {
+                set->insert(x);
+            }
+        }
+        else if (command == "q") // q l r: number of keys in (l, r]
+        {
+            int l, r;
+            std::cin >> l >> r;
+            if (std::cin)
+            {
+                print(set->count_in_range(l, r));
+            }
+        }
+        else if (command == "m") // m i: i-th smallest key
+        {
+            std::ptrdiff_t i;
+            std::cin >> i;
+            if (std::cin)
+            {
+                const std::optional<int> result = set->kth(i);
+                if (result)
+                {
+                    print(*result);
+                }
+                else
+                {
+                    print("none"); // i is out of bounds
+                }
+            }
+        }
+        else if (command == "n") // n x: number of keys strictly less than x
+        {
+            int x;
+            std::cin >> x;
+            if (std::cin)
+            {
+                print(set->count_less(x));
+            }
+        }
+        else
+        {
+            std::cerr << "Unknown command: " << command << '\n';
+            return 1;
+        }
+
+        if (!std::cin)
+        {
+            std::cerr << "Malformed input\n";
+            return 1;
+        }
     }
 
-    EXPECT_EQ(this->set.kth(1), -4);
-    EXPECT_EQ(this->set.kth(2), 7);
-    EXPECT_EQ(this->set.kth(3), 10);
-
-    // Out of bounds.
-    EXPECT_EQ(this->set.kth(0), std::nullopt);
-    EXPECT_EQ(this->set.kth(-1), std::nullopt);
-    EXPECT_EQ(this->set.kth(4), std::nullopt);
-}
-
-TYPED_TEST(DynamicSetTest, KthOnEmptySet)
-{
-    EXPECT_EQ(this->set.kth(1), std::nullopt);
-}
-
-TYPED_TEST(DynamicSetTest, CountLess)
-{
-    for (int x : {1, 3, 5, 7})
-    {
-        this->set.insert(x);
-    }
-
-    EXPECT_EQ(this->set.count_less(1), 0); // strictly less
-    EXPECT_EQ(this->set.count_less(2), 1);
-    EXPECT_EQ(this->set.count_less(7), 3);
-    EXPECT_EQ(this->set.count_less(8), 4);
-}
-
-// The example from the assignment:
-// k 8, k 2, k -1, m 1, m 2, n 3, q -1 8  ->  -1 2 2 2
-TYPED_TEST(DynamicSetTest, AssignmentExample)
-{
-    this->set.insert(8);
-    this->set.insert(2);
-    this->set.insert(-1);
-
-    EXPECT_EQ(this->set.kth(1), -1);
-    EXPECT_EQ(this->set.kth(2), 2);
-    EXPECT_EQ(this->set.count_less(3), 2);
-    EXPECT_EQ(this->set.count_in_range(-1, 8), 2);
-}
-
-// Extra: AVL (rotations!) must agree with the simple vector implementation
-// on random data, including sorted insertion, which triggers many rotations.
-TEST(AVLImplementationTest, MatchesVectorOnRandomData)
-{
-    AVLImplementation avl;
-    VectorImplementation reference;
-
-    for (int i = 0; i < 1000; ++i) // Sorted input.
-    {
-        avl.insert(i);
-        reference.insert(i);
-    }
-
-    std::mt19937 rng(12345);
-    std::uniform_int_distribution<int> dist(-2000, 2000);
-    for (int i = 0; i < 2000; ++i)
-    {
-        const int x = dist(rng);
-        avl.insert(x);
-        reference.insert(x);
-    }
-
-    for (int i = 0; i < 500; ++i)
-    {
-        const int a = dist(rng);
-        const int b = dist(rng);
-        EXPECT_EQ(avl.count_less(a), reference.count_less(a));
-        EXPECT_EQ(avl.count_in_range(a, b), reference.count_in_range(a, b));
-        EXPECT_EQ(avl.kth(i + 1), reference.kth(i + 1));
-    }
-    EXPECT_EQ(avl.kth(100000), std::nullopt);
+    std::cout << '\n';
+    return 0;
 }

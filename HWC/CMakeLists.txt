@@ -16,6 +16,9 @@ target_sources(sets
             sets/set_implementation.cppm
             sets/vector_implementation.cppm
             sets/avl_implementation.cppm
+            # Uncomment after you create these two files:
+            # sets/trie_implementation.cppm
+            # sets/block_list_implementation.cppm
 )
 
 # --- Console application (folder src/) ------------------------------------
